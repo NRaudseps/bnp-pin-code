@@ -1,3 +1,4 @@
+import os.path
 from base64 import b64decode
 from os import listdir
 from os.path import isfile, join
@@ -16,13 +17,14 @@ def read64(base64_string):
 class BNPCodeOrder:
     def __init__(self, screen_image):
         self.screen_image = screen_image
+        self.path = os.path.dirname(os.path.abspath(__file__))
         self.number_images = sorted([f for f in listdir('img') if isfile(join('img', f))])
         self.code = [7, 8, 5, 1, 4, 9]
 
     def get_pin_code_order(self):
         positions = dict()
         for index, image in enumerate(self.number_images):
-            number_image = cv2.imread(f'img/{image}', cv2.IMREAD_UNCHANGED)
+            number_image = cv2.imread(f'{self.path}/img/{image}', cv2.IMREAD_UNCHANGED)
 
             # This method finds the position of the number in the image
             result = cv2.matchTemplate(self.screen_image, number_image, cv2.TM_CCOEFF_NORMED)
@@ -39,11 +41,13 @@ class BNPCodeOrder:
 
     @staticmethod
     def sort_sequence(number_sequence):
-        row_y_axis = [420, 500]
+        min_y_axis = min(number_sequence.items(), key=lambda x: x[1])[1][1]
+        # A cell is roughly 80px * 80px
+        row_y_axis = [min_y_axis, min_y_axis + 80]
         rows = []
         for y_axis in row_y_axis:
             # Separate by Y axis
-            row = {k: v for k, v in number_sequence.items() if v[1] == y_axis}
+            row = {k: v for k, v in number_sequence.items() if y_axis <= v[1] + 5 <= y_axis + 80}
             # Sort by X axis
             row = sorted(row.items(), key=lambda x_axis: x_axis[1][0])
             # Turn dict to array
